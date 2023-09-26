@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app">
+    <input type="text" v-model="listText">
+    <button type="button" @click="createItem">create</button>
+    <ul>
+      <li v-for="item in data" :key="item['id']">
+        {{ item['text'] }}
+        <button type="button" @click="editItem(item)">edit</button>
+        <button type="button" @click="deleteItem(item)">delete</button>
+      </li>
+    </ul>
+    <hr>
+    <div v-if="editTemp.text">
+      <input type="text" v-model="editTemp.text">
+      <button type="button" @click="updateItem()">update</button>
+    </div>
+  </div>
+  <script type="module">
+    import { createApp, ref, onMounted, watch, computed } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+    createApp({
+      setup() {
+        const listText = ref('');
+        const data = ref([]);
+        const editTemp = ref({});
+        const maxIdTemp = ref(0);
+        // return data max id
+        function maxId() {
+          return data.value.reduce((max, obj) => {
+            if (obj.id > max) {
+              return obj.id;
+            }
+            return max;
+          }, 0);
+        }
+        // create item
+        function createItem() {
+          if (!data.value.length) {
+            pushObject();
+          } else {
+            if (maxIdTemp.value) {
+              pushObject(maxIdTemp.value + 1);
+              maxIdTemp.value = 0;
+              return;
+            }
+            pushObject(maxId() + 1);
+          }
+          function pushObject(id = 1) {
+            data.value.push({
+              id: id,
+              text: listText.value
+            });
+            listText.value = '';
+          }
+        }
+        // delete item
+        function deleteItem(item) {
+          if (item.id === maxId()) maxIdTemp.value = item.id;
+          const index = data.value.findIndex((dataItem) => dataItem.id === item.id);
+          data.value.splice(index, 1);
+        }
+        // edit item
+        function editItem(item) {
+          editTemp.value = { ...item };
+        }
+        // update item
+        function updateItem() {
+          const index = data.value.findIndex((dataItem) => dataItem.id === editTemp.value.id);
+          data.value[index] = editTemp.value;
+          editTemp.value = {};
+        }
+        // if localStorage has had item
+        onMounted(() => {
+          const todoList = JSON.parse(localStorage.getItem('myData') || '[]');
+          if (todoList.length) {
+            data.value = todoList;
+          }
+        })
+        // watch data if is changed set item to localStorage
+        watch(() => data.value, (newData) => {
+          localStorage.setItem('myData', JSON.stringify(newData));
+        }, { deep: true });
+        const testComputed = computed(() => {
+          return maxIdTemp.value ? 'yes' : 'no';
+        });
+        return {
+          listText,
+          data,
+          editTemp,
+          createItem,
+          deleteItem,
+          editItem,
+          updateItem,
+          testComputed
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+
+</html>
